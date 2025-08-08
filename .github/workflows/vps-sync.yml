@@ -34,12 +34,14 @@ jobs:
           else
             echo "Branch vps-data does not exist. Creating..."
             git checkout --orphan vps-data
-            rm -rf *
+            rm -rf ./*
             mkdir vps_data
             echo "VPS data storage branch" > vps_data/README.txt
             git add .
             git commit -m "Initialize VPS data branch"
             git push origin vps-data
+          fi
+
 
       - name: Restore existing VPS data
         run: |

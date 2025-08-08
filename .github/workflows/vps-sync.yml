@@ -3,7 +3,7 @@ name: VPS Sync via Tmate
 on:
   workflow_dispatch:
   schedule:
-    - cron: '0 * * * *'  # runs hourly, for example
+    - cron: '0 */6 * * *' # every 6 hours
 
 jobs:
   vps-sync:
@@ -13,12 +13,11 @@ jobs:
       - name: Checkout default branch
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # needed to push new branch later
+          fetch-depth: 0
 
       - name: Start Tmate session
-        uses: mxschmitt/action-tmate@v4
+        uses: mxschmitt/action-tmate@v3
         id: tmate
-        # Optional: expose port if required
 
       - name: Switch to or create 'vps-data' branch
         run: |
@@ -31,22 +30,21 @@ jobs:
             git checkout -b vps-data
           fi
 
-      - name: Fetch Existing VPS Data
+      - name: Restore existing VPS data
         run: |
-          if [ -f vps_data.json ]; then
-            echo "Found existing data:"
-            cat vps_data.json
+          if [ -d vps_data ]; then
+            echo "Found existing VPS data."
           else
-            echo "No existing data found."
+            mkdir vps_data
+            echo "No data found, created vps_data folder."
           fi
 
-      - name: Run VPS Data Collection Script
+      - name: Run your VPS setup
         run: |
-          # Replace with your actual data-gathering commands
-          echo "{\"timestamp\":\"$(date -Is)\",\"info\":\"my vps data\"}" > vps_data.json
+          echo "Example VPS data" > vps_data/example.txt
 
       - name: Commit and push updated data
         run: |
-          git add vps_data.json
+          git add vps_data
           git commit -m "Update VPS data at $(date -Is)" || echo "No changes to commit"
           git push origin vps-data

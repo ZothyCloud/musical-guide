@@ -1,0 +1,68 @@
+name: VPS Sync via Tmate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */6 * * *' # every 6 hours
+
+jobs:
+  vps-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 330  # 5h 30m
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Create or switch to vps-data branch
+        run: |
+          if git ls-remote --heads origin vps-data | grep vps-data; then
+            echo "Branch vps-data exists. Checking out..."
+            git fetch origin vps-data
+            git checkout vps-data
+          else
+            echo "Branch vps-data does not exist. Creating..."
+            git checkout --orphan vps-data
+            rm -rf *
+            mkdir vps_data
+            echo "VPS data storage branch" > vps_data/README.txt
+            git add .
+            git commit -m "Initialize VPS data branch"
+            git push origin vps-data
+          fi
+
+      - name: Restore existing VPS data
+        run: |
+          if [ -d vps_data ]; then
+            echo "Restored VPS data folder."
+          else
+            mkdir vps_data
+            echo "No data found, created empty vps_data folder."
+          fi
+
+      - name: Install and start tmate (background)
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y tmate
+          tmate -F new-session -d
+          sleep 5
+          echo "SSH: $(tmate display -p '#{tmate_ssh}')"
+          echo "WEB: $(tmate display -p '#{tmate_web}')"
+
+      - name: Keep VPS alive for 5h 30m
+        run: |
+          echo "VPS running... waiting 5h 30m"
+          sleep 19800
+
+      - name: Save updated VPS data
+        run: |
+          git add vps_data
+          git commit -m "Update VPS data at $(date -Is)" || echo "No changes to commit"
+          git push origin vps-data

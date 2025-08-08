@@ -1,3 +1,17 @@
+name: VPS Sync via Tmate
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 */12 * * *'
+
+jobs:
+  vps-sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Start tmate in background and print SSH once
         run: |
           sudo apt-get update
@@ -13,5 +27,22 @@
           SSH_SESSION=$(tmate -S /tmp/tmate.sock display -p '#{tmate_ssh}')
           echo "SSH Session: $SSH_SESSION"
 
-          # Optional: sleep for 5h 30m before job ends
+          # Optional: keep session alive for 5h 30m
           sleep 19800
+
+      - name: Save VPS data to branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          if git ls-remote --exit-code --heads origin vps-data; then
+            git fetch origin vps-data
+            git checkout vps-data
+          else
+            git checkout --orphan vps-data
+            git rm -rf .
+            echo "VPS data branch initialized" > vps_data/README.txt
+            git add .
+            git commit -m "Initialize VPS data branch"
+            git push origin vps-data
+          fi

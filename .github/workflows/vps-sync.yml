@@ -5,6 +5,9 @@ on:
   schedule:
     - cron: '0 */6 * * *' # every 6 hours
 
+permissions:
+  contents: write
+
 jobs:
   vps-sync:
     runs-on: ubuntu-latest
@@ -15,6 +18,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Configure git
         run: |
@@ -36,7 +40,6 @@ jobs:
             git add .
             git commit -m "Initialize VPS data branch"
             git push origin vps-data
-          fi
 
       - name: Restore existing VPS data
         run: |
@@ -53,12 +56,11 @@ jobs:
           sudo apt-get install -y tmate
           tmate -F new-session -d
           sleep 5
-          echo "SSH: $(tmate display -p '#{tmate_ssh}')"
-          echo "WEB: $(tmate display -p '#{tmate_web}')"
+          echo "SSH Session: $(tmate display -p '#{tmate_ssh}')"
 
       - name: Keep VPS alive for 5h 30m
         run: |
-          echo "VPS running... waiting 5h 30m"
+          echo "VPS running for 5h 30m..."
           sleep 19800
 
       - name: Save updated VPS data

@@ -28,7 +28,7 @@ jobs:
           echo "SSH Session: $SSH_SESSION"
 
           # Optional: keep session alive for 5h 30m
-          sleep 150
+          sleep 19080
 
       - name: Save VPS data to branch
         run: |

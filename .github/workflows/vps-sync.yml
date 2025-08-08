@@ -8,6 +8,7 @@ on:
 jobs:
   vps-sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 330  # 5h 30m
 
     steps:
       - name: Checkout default branch
@@ -15,15 +16,13 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Start Tmate session
-        uses: mxschmitt/action-tmate@v3
-        id: tmate
-
+      # Restore VPS data from branch
       - name: Switch to or create 'vps-data' branch
         run: |
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git config user.name "github-actions[bot]"
           if git ls-remote --heads origin vps-data; then
+            git fetch origin vps-data
             git checkout vps-data
             git pull origin vps-data
           else
@@ -39,10 +38,24 @@ jobs:
             echo "No data found, created vps_data folder."
           fi
 
-      - name: Run your VPS setup
+      # Start tmate in background
+      - name: Install and run tmate in background
         run: |
-          echo "Example VPS data" > vps_data/example.txt
+          sudo apt-get update
+          sudo apt-get install -y tmate
+          tmate -F new-session -d  # Start detached session
+          TMATE_SSH=$(tmate display -p '#{tmate_ssh}')
+          TMATE_WEB=$(tmate display -p '#{tmate_web}')
+          echo "Tmate SSH: $TMATE_SSH"
+          echo "Tmate Web: $TMATE_WEB"
 
+      # Keep VPS alive for 5h 30m
+      - name: Keep session alive
+        run: |
+          echo "Keeping VPS alive for 5h 30m..."
+          sleep 19800  # 5 hours 30 minutes in seconds
+
+      # Save VPS data before shutdown
       - name: Commit and push updated data
         run: |
           git add vps_data
